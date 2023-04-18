@@ -90,9 +90,9 @@ public class BossHealthIndicatorPlugin extends Plugin
 			.build();
 		clientToolbar.addNavigation(navButton);
 		bossDatabase = new ArrayList<HealthBarData>();
-		//createDummyData();
 		//saveToConfig();
 		loadFromConfig();
+		createDummyData();
 		makeDatabaseMap();
 
 		activeBars = new ArrayList<Widget>();
