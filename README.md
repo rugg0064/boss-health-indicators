@@ -12,6 +12,6 @@ You can use the panel to add your own boss indicators. For an example, you can c
 
 ![ingGame](img/ingame.png)
 
-#Panel
+# Panel
 
 ![panel](img/panel.png)
