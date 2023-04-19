@@ -2,6 +2,8 @@ package com.boss.health.indicator;
 
 import javax.inject.Inject;
 
+import com.boss.health.indicator.model.BossIndicators;
+import com.boss.health.indicator.model.Indicator;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
@@ -16,11 +18,14 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.components.colorpicker.ColorPickerManager;
 import net.runelite.client.util.ImageUtil;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.List;
 
 @Slf4j
 @PluginDescriptor(
@@ -36,6 +41,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Inject private ClientThread clientThread;
 	@Inject private ConfigManager configManager;
 	@Inject private Gson gson;
+	@Inject private ColorPickerManager colorPickerManager;
 
 	private static final String CONFIG_GROUP = "bosshealthindicators";
 	private static final String CONFIG_KEY = "indicators";
@@ -43,80 +49,77 @@ public class BossHealthIndicatorPlugin extends Plugin
 	private NavigationButton navButton;
 	private BossHealthIndicatorPanel panel;
 
-	private class HealthBarIndicator {
-		private double percentage;
-		private int color;
-
-		public HealthBarIndicator(double percentage, int color) {
-			this.percentage = percentage;
-			this.color = color;
-		}
+	public ColorPickerManager getColorPickerManager() {
+		return colorPickerManager;
 	}
 
-	private class HealthBarData {
-		private String bossName;
-		private List<HealthBarIndicator> entries;
 
-		public HealthBarData(String bossName, List<HealthBarIndicator> entries) {
-			this.bossName = bossName;
-			this.entries = entries;
-		}
 
-		public String getBossName() {
-			return bossName;
-		}
-
-		public List<HealthBarIndicator> getEntries() {
-			return entries;
-		}
-	}
-
-	private List<HealthBarData> bossDatabase;
-	Map<String, HealthBarData> mapping;
+	private List<BossIndicators> bossDatabase;
+	Map<String, BossIndicators> mapping;
 
 	List<Widget> activeBars;
-	HealthBarData activeBoss;
+	BossIndicators activeBoss;
 
 	@Override
 	protected void startUp() throws Exception
 	{
+		bossDatabase = new ArrayList<BossIndicators>();
+		//saveToConfig();
+		//loadFromConfig();
+		createDummyData();
+		makeDatabaseMap();
+
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/bosshealthindicator_icon.png");
 		panel = new BossHealthIndicatorPanel(this);
 		navButton = NavigationButton.builder()
-			.tooltip("qwe")
+			.tooltip("Boss Health Indicators")
 			.icon(icon)
 			.priority(3)
 			.panel(panel)
 			.build();
 		clientToolbar.addNavigation(navButton);
-		bossDatabase = new ArrayList<HealthBarData>();
-		//saveToConfig();
-		loadFromConfig();
-		createDummyData();
-		makeDatabaseMap();
 
 		activeBars = new ArrayList<Widget>();
 		activeBoss = null;
 	}
 
 	void createDummyData() {
-		bossDatabase = new ArrayList<HealthBarData>();
+		bossDatabase = new ArrayList<BossIndicators>();
 		bossDatabase.add(
-			new HealthBarData(
+			new BossIndicators(
 		"Galvek",
 				Arrays.asList(
-				new HealthBarIndicator[] {
-					new HealthBarIndicator(0.25, 0x0000FF),
-					new HealthBarIndicator(0.50, 0x00FF00),
-					new HealthBarIndicator(0.75, 0xFF0000)
+				new Indicator[] {
+					new Indicator(0.25, Color.BLUE),
+					new Indicator(0.50, Color.GREEN),
+					new Indicator(0.75, Color.RED)
 				})));
 		bossDatabase.add(
-			new HealthBarData(
+			new BossIndicators(
 	"Vorkath",
 			Arrays.asList(
-			new HealthBarIndicator[] {
-				new HealthBarIndicator(0.33, 0xFFFFFF),
+			new Indicator[] {
+				new Indicator(0.33, Color.WHITE),
 			})));
+		bossDatabase.add(
+				new BossIndicators(
+						"Ba-Ba",
+						Arrays.asList(
+								new Indicator[] {
+										new Indicator(0.33, Color.WHITE),
+										new Indicator(0.66, Color.WHITE),
+								})));
+		bossDatabase.add(
+				new BossIndicators(
+						"Akkha",
+						Arrays.asList(
+								new Indicator[] {
+										new Indicator(0.8, Color.BLUE),
+										new Indicator(0.6, Color.BLUE),
+										new Indicator(0.4, Color.BLUE),
+										new Indicator(0.2, Color.BLUE),
+								})));
 	}
 
 	@Override
@@ -137,7 +140,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 			if((activeBoss == null || !activeBoss.getBossName().equals(text))) {
 				clearBars();
 				if(mapping.containsKey(text)) {
-					HealthBarData data = mapping.get(text);
+					BossIndicators data = mapping.get(text);
 					activeBoss = data;
 					createBars();
 				} else {
@@ -158,14 +161,14 @@ public class BossHealthIndicatorPlugin extends Plugin
 	void createBars() {
 		Widget parent = client.getWidget(303, 10);
 		int i = 0;
-		for(HealthBarIndicator indicator : activeBoss.getEntries()) {
-			Widget bar = createBarWidget(parent, indicator.color, indicator.percentage);
+		for(Indicator indicator : activeBoss.getEntries()) {
+			Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage());
 			activeBars.add(bar);
 		}
 	}
 
-	Widget createBarWidget(Widget parent, int color, double percent) {
-		Widget bar = parent.createChild(3);
+	private Widget createBarWidget(Widget parent, Color color, double percent) {
+		Widget bar = parent.createChild(WidgetType.RECTANGLE);
 		bar.setOriginalWidth(2);
 		bar.setWidthMode(WidgetSizeMode.ABSOLUTE);
 
@@ -175,32 +178,43 @@ public class BossHealthIndicatorPlugin extends Plugin
 		bar.setOriginalX((int) (parent.getWidth() * percent));
 		bar.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
 
-		bar.setTextColor(color);
-		bar.setOpacity(127);
+		bar.setTextColor(color.getRGB());
+		bar.setOpacity(color.getTransparency());
+		//bar.setOpacity(127);
 
 		bar.revalidate();
 
 		return bar;
 	}
 
-	void loadFromConfig() {
+	private void loadFromConfig() {
 		String json = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY);
-		Type type = new TypeToken<List<HealthBarData>>(){}.getType();
+		Type type = new TypeToken<List<BossIndicators>>(){}.getType();
 		System.out.println("Loading config: " + json);
 		bossDatabase = gson.fromJson(json, type);
 	}
 
-	void saveToConfig() {
+	private void saveToConfig() {
 		configManager.unsetConfiguration(CONFIG_GROUP, CONFIG_KEY);
 		String json = gson.toJson(bossDatabase);
 		System.out.println("Writing to config: " + json);
 		configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY, json);
 	}
 
-	void makeDatabaseMap() {
-		mapping = new HashMap<String, HealthBarData>();
-		for(HealthBarData data : bossDatabase) {
+	private void makeDatabaseMap() {
+		mapping = new HashMap<String, BossIndicators>();
+		for(BossIndicators data : bossDatabase) {
 			mapping.put(data.getBossName(), data);
 		}
+	}
+
+	public void updateFromPanel() {
+		bossDatabase = panel.getBossDatabase();
+		makeDatabaseMap();
+		activeBoss = null;
+	}
+
+	public List<BossIndicators> getBossDatabase() {
+		return bossDatabase;
 	}
 }
