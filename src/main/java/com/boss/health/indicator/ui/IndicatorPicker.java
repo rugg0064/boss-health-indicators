@@ -1,9 +1,11 @@
 package com.boss.health.indicator.ui;
 
 import com.boss.health.indicator.BossHealthIndicatorPlugin;
+import com.boss.health.indicator.SelfRunnable;
 import com.boss.health.indicator.model.Indicator;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class IndicatorPicker {
     private JPanel panel;
@@ -12,7 +14,7 @@ public class IndicatorPicker {
     private PercentagePicker percentagePicker;
     private ColorPicker colorPicker;
 
-    public IndicatorPicker(Indicator indicator, Runnable onChanged, BossHealthIndicatorPlugin plugin) {
+    public IndicatorPicker(Indicator indicator, Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<IndicatorPicker> onDelete) {
         this.onChanged = onChanged;
 
         panel = new JPanel();
@@ -24,7 +26,11 @@ public class IndicatorPicker {
         panel.add(Box.createHorizontalStrut(10));
         panel.add(percentagePicker.getComponent());
         panel.add(Box.createHorizontalStrut(10));
-        panel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove Indicator", () -> {}));
+        panel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove Indicator", () -> { onDelete.run(this); }));
+    }
+
+    public IndicatorPicker(Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<IndicatorPicker> onDelete) {
+        this(new Indicator(0, Color.WHITE), onChanged, plugin, onDelete);
     }
 
     public JComponent getComponent() {

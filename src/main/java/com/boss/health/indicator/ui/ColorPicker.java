@@ -8,6 +8,12 @@ import net.runelite.client.util.ImageUtil;
 import javax.swing.*;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -45,7 +51,7 @@ public class ColorPicker {
             @Override
             public void mousePressed(MouseEvent mouseEvent)
             {
-                openColorPicker();
+                openColorPicker(label.getLocationOnScreen());
             }
 
             @Override
@@ -63,14 +69,14 @@ public class ColorPicker {
         updateColor();
     }
 
-    private void openColorPicker()
+    private void openColorPicker(Point location)
     {
         RuneliteColorPicker colorPicker = plugin.getColorPickerManager().create(
                 SwingUtilities.windowForComponent(label),
                 color.getAlpha() == 0 ? ColorUtil.colorWithAlpha(color, DEFAULT_FILL_OPACITY) : color,
                 "",
                 false);
-        //colorPicker.setLocation(getLocationOnScreen());
+        colorPicker.setLocation(location);
         colorPicker.setOnColorChange(c ->
         {
             color = c;

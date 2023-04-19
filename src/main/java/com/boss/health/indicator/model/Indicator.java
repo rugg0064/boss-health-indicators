@@ -18,4 +18,8 @@ public class Indicator {
     public Color getColor() {
         return color;
     }
+
+    public boolean hasAnyNull() {
+        return color == null;
+    }
 }

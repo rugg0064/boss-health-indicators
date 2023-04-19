@@ -1,9 +1,10 @@
 package com.boss.health.indicator.ui;
 
 import com.boss.health.indicator.BossHealthIndicatorPlugin;
+import com.boss.health.indicator.SelfRunnable;
 import com.boss.health.indicator.model.BossIndicators;
 import com.boss.health.indicator.model.Indicator;
-import org.w3c.dom.Text;
+import net.runelite.client.events.ConfigChanged;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,15 +14,47 @@ import java.util.List;
 public class BossIndicatorCreator {
     private TextPicker bossNamePicker;
     private List<IndicatorPicker> indicatorPickers;
+    private JPanel indicatorsPanel;
+    private Runnable onChanged;
+    private BossHealthIndicatorPlugin plugin;
+    private SelfRunnable<BossIndicatorCreator> onDelete;
     private JPanel panel;
 
-    public BossIndicatorCreator(BossIndicators bossIndicators, Runnable onChanged, BossHealthIndicatorPlugin plugin) {
+    public BossIndicatorCreator(BossIndicators bossIndicators, Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<BossIndicatorCreator> onDelete) {
+        this.onChanged = onChanged;
+        this.plugin = plugin;
+        this.onDelete = onDelete;
         this.bossNamePicker = new TextPicker(bossIndicators.getBossName(), onChanged);
         this.indicatorPickers = new ArrayList<IndicatorPicker>();
+        this.indicatorsPanel = new JPanel();
         for(Indicator indicator : bossIndicators.getEntries()) {
-            indicatorPickers.add(new IndicatorPicker(indicator, onChanged, plugin));
+            indicatorPickers.add(new IndicatorPicker(
+                indicator,
+                onChanged,
+                plugin,
+                (self) -> {
+                    indicatorPickers.remove(self);
+                    indicatorsPanel.remove(self.getComponent());
+                    indicatorsPanel.revalidate();
+                    onChanged.run();
+                }));
         }
+        createPanel();
+    }
+
+    public BossIndicatorCreator(Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<BossIndicatorCreator> onDelete) {
+        this.onChanged = onChanged;
+        this.plugin = plugin;
+        this.onDelete = onDelete;
+        this.bossNamePicker = new TextPicker("", onChanged);
+        this.indicatorPickers = new ArrayList<IndicatorPicker>();
+        this.indicatorsPanel = new JPanel();
+        createPanel();
+    }
+
+    private void createPanel() {
         this.panel = new JPanel(new BorderLayout());
+        panel.removeAll();
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JPanel topPanel = new JPanel();
@@ -29,12 +62,29 @@ public class BossIndicatorCreator {
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));
         topPanel.add(bossNamePicker.getComponent());
         topPanel.add(Box.createHorizontalStrut(10));
-        topPanel.add(new IconButton(Icons.ADD_ICON, Icons.ADD_ICON_HOVER, "Add a new marker", () -> {}));
+        topPanel.add(new IconButton(Icons.ADD_ICON, Icons.ADD_ICON_HOVER, "Add a new marker", () -> {
+            IndicatorPicker newIndicatorPicker = new IndicatorPicker(
+                onChanged,
+                plugin,
+                (self) -> {
+                    indicatorPickers.remove(self);
+                    JComponent component = self.getComponent();
+                    component.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    indicatorsPanel.remove(component);
+                    indicatorsPanel.revalidate();
+                    onChanged.run();
+                });
+            indicatorPickers.add(newIndicatorPicker);
+            newIndicatorPicker.getComponent().setAlignmentX(Component.LEFT_ALIGNMENT);
+            indicatorsPanel.add(newIndicatorPicker.getComponent());
+            indicatorsPanel.revalidate();
+            onChanged.run();
+        }));
+
         topPanel.add(Box.createHorizontalStrut(10));
-        topPanel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove boss", () -> {}));
+        topPanel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove boss", () -> { onDelete.run(this); }));
         panel.add(topPanel, BorderLayout.NORTH);
 
-        JPanel indicatorsPanel = new JPanel();
         indicatorsPanel.setLayout(new BoxLayout(indicatorsPanel, BoxLayout.Y_AXIS));
         for(IndicatorPicker picker : indicatorPickers) {
             JComponent component = picker.getComponent();

@@ -3,7 +3,6 @@ package com.boss.health.indicator.ui;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
 public class TextPicker {
     private JTextField textField;
 

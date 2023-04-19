@@ -18,4 +18,14 @@ public class BossIndicators {
     public List<Indicator> getEntries() {
         return entries;
     }
+
+    public boolean hasAnyNull() {
+        boolean hasNull = false;
+        for(int i = 0; i < entries.size() && !hasNull; i++) {
+            if(entries.get(i).hasAnyNull()) {
+                hasNull = true;
+            }
+        }
+        return (bossName == null) || hasNull;
+    }
 }

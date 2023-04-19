@@ -10,12 +10,13 @@ public class PercentagePicker {
     private JSpinner spinner;
 
     public PercentagePicker(double percent, Runnable onChanged) {
-        this.spinner = new JSpinner(new SpinnerNumberModel(percent, 0, 1, 0.01));
+        this.spinner = new PercentSpinner(percent, 0, 1, 0.01);
         this.spinner.addChangeListener((e) -> {
             onChanged.run();
         });
         JSpinner x = this.spinner;
         this.spinner.setMaximumSize(new Dimension(72, spinner.getPreferredSize().height));
+
     }
 
     public JComponent getComponent() {

@@ -22,6 +22,9 @@ import net.runelite.client.ui.components.colorpicker.ColorPickerManager;
 import net.runelite.client.util.ImageUtil;
 
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -53,8 +56,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 		return colorPickerManager;
 	}
 
-
-
 	private List<BossIndicators> bossDatabase;
 	Map<String, BossIndicators> mapping;
 
@@ -64,12 +65,13 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		bossDatabase = new ArrayList<BossIndicators>();
-		//saveToConfig();
-		//loadFromConfig();
-		createDummyData();
+		loadFromConfig();
 		makeDatabaseMap();
 
+		activeBars = new ArrayList<Widget>();
+		activeBoss = null;
+
+		// Set up side panel
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/bosshealthindicator_icon.png");
 		panel = new BossHealthIndicatorPanel(this);
 		navButton = NavigationButton.builder()
@@ -79,9 +81,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 			.panel(panel)
 			.build();
 		clientToolbar.addNavigation(navButton);
-
-		activeBars = new ArrayList<Widget>();
-		activeBoss = null;
 	}
 
 	void createDummyData() {
@@ -150,6 +149,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 		}
 	}
 
+	// Deletes all active bar widgets
 	void clearBars() {
 		for(Widget widget : activeBars) {
 			widget.setHidden(true);
@@ -158,21 +158,26 @@ public class BossHealthIndicatorPlugin extends Plugin
 		activeBars.clear();
 	}
 
+	// Creates the appropriate indicator bars as children of the healthbar widget
+	// Assumes activeBoss is set and not null
 	void createBars() {
-		Widget parent = client.getWidget(303, 10);
-		int i = 0;
+		//Widget parent = client.getWidget(303, 10);
+		Widget parent = client.getWidget(303, 12);
+		int height = client.getWidget(303, 10).getOriginalHeight();
+
 		for(Indicator indicator : activeBoss.getEntries()) {
-			Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage());
+			Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage(), height);
 			activeBars.add(bar);
 		}
 	}
 
-	private Widget createBarWidget(Widget parent, Color color, double percent) {
+	// Creates a bar widget, does not add to parent
+	private Widget createBarWidget(Widget parent, Color color, double percent, int height) {
 		Widget bar = parent.createChild(WidgetType.RECTANGLE);
 		bar.setOriginalWidth(2);
 		bar.setWidthMode(WidgetSizeMode.ABSOLUTE);
 
-		bar.setOriginalHeight(parent.getOriginalHeight());
+		bar.setOriginalHeight(height);
 		bar.setHeightMode(WidgetSizeMode.ABSOLUTE);
 
 		bar.setOriginalX((int) (parent.getWidth() * percent));
@@ -187,34 +192,125 @@ public class BossHealthIndicatorPlugin extends Plugin
 		return bar;
 	}
 
+	// Lodas config, merges by boss name, and saves to bossDatabase
 	private void loadFromConfig() {
 		String json = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY);
-		Type type = new TypeToken<List<BossIndicators>>(){}.getType();
-		System.out.println("Loading config: " + json);
-		bossDatabase = gson.fromJson(json, type);
+		bossDatabase = stringToBossIndicators(json);
+		saveToConfig();
 	}
 
+	// Saves the current bossDatabase to config
 	private void saveToConfig() {
 		configManager.unsetConfiguration(CONFIG_GROUP, CONFIG_KEY);
 		String json = gson.toJson(bossDatabase);
-		System.out.println("Writing to config: " + json);
 		configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY, json);
 	}
 
 	private void makeDatabaseMap() {
+		List<BossIndicators> mergedIndicators = mergeIndicatorList(bossDatabase);
+
 		mapping = new HashMap<String, BossIndicators>();
-		for(BossIndicators data : bossDatabase) {
+		for(BossIndicators data : mergedIndicators) {
 			mapping.put(data.getBossName(), data);
 		}
 	}
 
+	private ArrayList<BossIndicators> stringToBossIndicators(String string) {
+		ArrayList<BossIndicators> returnList = new ArrayList<>();
+		try {
+			Type type = new TypeToken<List<BossIndicators>>() {}.getType();
+			returnList = gson.fromJson(string, type);
+			boolean hasNull = false;
+			for(int i = 0; i < returnList.size() && !hasNull; i++) {
+				if(returnList.get(i).hasAnyNull()) {
+					hasNull = true;
+				}
+			}
+			if(hasNull) {
+				returnList = null;
+			}
+		} catch (Exception e) {
+			// If there was any error, we really don't care what it was.
+			// Keep the plugin going and return null.
+			returnList = null;
+		} finally {
+			if(returnList == null) {
+				returnList = new ArrayList<BossIndicators>();
+			}
+		}
+		return returnList;
+	}
+
 	public void updateFromPanel() {
 		bossDatabase = panel.getBossDatabase();
+		saveToConfig();
+
 		makeDatabaseMap();
 		activeBoss = null;
 	}
 
+	// Merges entries of bossDatabase where the name is the same into a single entry
+	// Be careful not to save merged data into config
+	private List<BossIndicators> mergeIndicatorList(List<BossIndicators> indicators) {
+		// Incase the user made multiple entries with the same name, we will squash that into one entry here.
+		HashMap<String, BossIndicators> mergeMap = new HashMap<>();
+		for(BossIndicators indicator : indicators) {
+			String bossName = indicator.getBossName();
+			if(!mergeMap.containsKey(bossName)) {
+				// Not in table
+				mergeMap.put(bossName, indicator);
+			} else {
+				// Already exists
+				BossIndicators oldIndicator = mergeMap.get(bossName);
+				ArrayList<Indicator> mergedIndicators = new ArrayList<>();
+				mergedIndicators.addAll(oldIndicator.getEntries());
+				mergedIndicators.addAll(indicator.getEntries());
+				mergeMap.put(bossName, new BossIndicators(bossName, mergedIndicators));
+			}
+		}
+		return new ArrayList<BossIndicators>(mergeMap.values());
+	}
+
 	public List<BossIndicators> getBossDatabase() {
 		return bossDatabase;
+	}
+
+	public void exportToClipboard() {
+		String json = gson.toJson(bossDatabase);
+		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		StringSelection selection = new StringSelection(json);
+		clipboard.setContents(selection, null);
+	}
+
+	public void importFromClipboard() {
+		String clipboardText = getClipboard();
+
+		ArrayList<BossIndicators> originalIndicators = stringToBossIndicators(configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY));
+		ArrayList<BossIndicators> newIndicators = stringToBossIndicators(clipboardText);
+
+		ArrayList<BossIndicators> combined = new ArrayList<>();
+		combined.addAll(originalIndicators);
+		combined.addAll(newIndicators);
+
+		bossDatabase = combined;
+		makeDatabaseMap();
+		panel.rebuild();
+
+		saveToConfig();
+		activeBoss = null;
+	}
+
+	private String getClipboard() {
+		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+			try {
+				String text = (String) clipboard.getData(DataFlavor.stringFlavor);
+				return text;
+			} catch (Exception e) {
+				return "";
+			}
+		} else {
+			return "";
+		}
 	}
 }
