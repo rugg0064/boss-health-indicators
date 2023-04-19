@@ -33,7 +33,7 @@ import java.util.List;
 @Slf4j
 @PluginDescriptor(
 	name = "Boss Health Indicators",
-	description = "",
+	description = "Shows indicators for certain health percentages on boss health bars.",
 	tags = {"Health Bar"}
 )
 public class BossHealthIndicatorPlugin extends Plugin

@@ -1,6 +1,8 @@
 # boss-health-indicators ![Icon](icon.png)
 
-A runelite plugin that adds customizable indicators on boss hp bars
+A runelite plugin that adds customizable indicators on boss hp bars.
+
+Note: The boss must have a health bar like pictures below!
 
 #Getting Started
 You can use the panel to add your own boss indicators. For an example, you can copy the indicator setup below and use the "import" button in the panel to load these markers for TOA:
