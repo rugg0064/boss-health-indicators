@@ -14,7 +14,6 @@ public class PercentagePicker {
         this.spinner.addChangeListener((e) -> {
             onChanged.run();
         });
-        JSpinner x = this.spinner;
         this.spinner.setMaximumSize(new Dimension(72, spinner.getPreferredSize().height));
 
     }
