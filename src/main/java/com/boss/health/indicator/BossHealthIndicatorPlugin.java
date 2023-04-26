@@ -77,7 +77,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 		navButton = NavigationButton.builder()
 			.tooltip("Boss Health Indicators")
 			.icon(icon)
-			.priority(3)
+			.priority(6)
 			.panel(panel)
 			.build();
 		clientToolbar.addNavigation(navButton);
@@ -125,6 +125,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		clientToolbar.removeNavigation(navButton);
+		clearBars();
 		activeBoss = null;
 	}
 
