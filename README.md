@@ -15,3 +15,7 @@ You can use the panel to add your own boss indicators. For an example, you can c
 # Panel
 
 ![panel](img/panel.png)
+
+# Image Source
+
+- Vorkath for icon - [Image](https://oldschool.runescape.wiki/w/File:Vorki_detail.png)
