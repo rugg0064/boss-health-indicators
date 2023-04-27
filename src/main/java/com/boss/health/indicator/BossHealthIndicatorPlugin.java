@@ -125,8 +125,8 @@ public class BossHealthIndicatorPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		clientToolbar.removeNavigation(navButton);
-		clearBars();
 		activeBoss = null;
+		clientThread.invoke(() -> clearBars());
 	}
 
 	@Subscribe
