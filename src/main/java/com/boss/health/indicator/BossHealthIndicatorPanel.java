@@ -151,13 +151,11 @@ public class BossHealthIndicatorPanel extends PluginPanel  {
             }
         }
         if(creatorIndex == -1) {
-            System.out.println("Not found");
             return;
         }
         int goalIndex = creatorIndex + amount;
         goalIndex = Math.max(0, goalIndex);
         goalIndex = Math.min(bossIndicatorCreators.size() - 1, goalIndex);
-        System.out.printf("Moving from index %d to index %d%n", creatorIndex, goalIndex);
         bossIndicatorCreators.remove(creatorIndex);
         bossIndicatorCreators.add(goalIndex, creator);
         plugin.updateFromPanel();
