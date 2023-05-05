@@ -9,10 +9,14 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 
-class BossHealthIndicatorPanel extends PluginPanel  {
+public class BossHealthIndicatorPanel extends PluginPanel  {
 
     private BossHealthIndicatorPlugin plugin;
     private List<BossIndicatorCreator> bossIndicatorCreators;
+
+    IconButton expandIcon;
+    IconButton collapseIcon;
+    JPanel panel;
 
     BossHealthIndicatorPanel(BossHealthIndicatorPlugin plugin)
     {
@@ -23,17 +27,19 @@ class BossHealthIndicatorPanel extends PluginPanel  {
         setBorder(null);
         setLayout(new DynamicGridLayout(0, 1));
 
-        JPanel panel = createPanel();
-
+        panel = createPanel();
+        fixCollapseButton();
         add(panel);
     }
-
 
     public JPanel createPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        Runnable onChanged = () -> { plugin.updateFromPanel(); };
+        Runnable onChanged = () -> {
+            fixCollapseButton();
+            plugin.updateFromPanel();
+        };
         SelfRunnable<BossIndicatorCreator> onDelete = (self) -> {
             bossIndicatorCreators.remove(self);
             panel.remove(self.getComponent());
@@ -56,14 +62,24 @@ class BossHealthIndicatorPanel extends PluginPanel  {
             createEmptyBossIndicatorCreator(panel, onChanged, onDelete);
             plugin.updateFromPanel();
         });
+        expandIcon = new IconButton(Icons.RIGHT_ARROW_ICON, Icons.RIGHT_ARROW_ICON_HOVER, "Expand all", () -> {
+            setAllCollapsed(false);
+        });
+        collapseIcon = new IconButton(Icons.DOWN_ARROW_ICON, Icons.DOWN_ARROW_ICON_HOVER, "Collapse all", () -> {
+            setAllCollapsed(true);
+        });
 
         topPanel.add(titleLabel);
         topPanel.add(Box.createHorizontalGlue());
+        topPanel.add(Box.createHorizontalStrut(5));
         topPanel.add(importButton);
         topPanel.add(Box.createHorizontalStrut(10));
         topPanel.add(exportButton);
         topPanel.add(Box.createHorizontalStrut(10));
         topPanel.add(addButton);
+        topPanel.add(Box.createHorizontalStrut(10));
+        topPanel.add(collapseIcon);
+        topPanel.add(expandIcon);
         panel.add(topPanel);
 
         List<BossIndicators> database = plugin.getBossDatabase();
@@ -105,6 +121,48 @@ class BossHealthIndicatorPanel extends PluginPanel  {
         bossIndicatorCreators.clear();
         JPanel panel = createPanel();
         add(panel);
+        fixCollapseButton();
+        revalidate();
+    }
+
+    private void fixCollapseButton() {
+        boolean anyAreExpanded = false;
+        for(BossIndicatorCreator creator : bossIndicatorCreators) {
+            if(!creator.isCollapsed()) {
+                anyAreExpanded = true;
+            }
+        }
+        expandIcon.setVisible(!anyAreExpanded);
+        collapseIcon.setVisible(anyAreExpanded);
+        panel.revalidate();
+    }
+
+    private void setAllCollapsed(boolean isCollapsed) {
+        for(BossIndicatorCreator creator : bossIndicatorCreators) {
+            creator.setCollapsed(isCollapsed);
+        }
+    }
+
+    public void moveCreator(BossIndicatorCreator creator, int amount) {
+        int creatorIndex = -1;
+        for(int i = 0; i < bossIndicatorCreators.size() && creatorIndex == -1; i++) {
+            if(bossIndicatorCreators.get(i) == creator) {
+                creatorIndex = i;
+            }
+        }
+        if(creatorIndex == -1) {
+            System.out.println("Not found");
+            return;
+        }
+        int goalIndex = creatorIndex + amount;
+        goalIndex = Math.max(0, goalIndex);
+        goalIndex = Math.min(bossIndicatorCreators.size() - 1, goalIndex);
+        System.out.printf("Moving from index %d to index %d%n", creatorIndex, goalIndex);
+        bossIndicatorCreators.remove(creatorIndex);
+        bossIndicatorCreators.add(goalIndex, creator);
+        plugin.updateFromPanel();
+        remove(creator.getComponent());
+        panel.add(creator.getComponent(), goalIndex + 1); // +1 because the top bar is also a child
         revalidate();
     }
 }

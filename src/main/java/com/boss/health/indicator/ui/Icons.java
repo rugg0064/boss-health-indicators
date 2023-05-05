@@ -15,6 +15,15 @@ public class Icons {
     public static final ImageIcon IMPORT_ICON_HOVER;
     public static final ImageIcon EXPORT_ICON;
     public static final ImageIcon EXPORT_ICON_HOVER;
+    public static final ImageIcon RIGHT_ARROW_ICON;
+    public static final ImageIcon RIGHT_ARROW_ICON_HOVER;
+    public static final ImageIcon LEFT_ARROW_ICON;
+    public static final ImageIcon LEFT_ARROW_ICON_HOVER;
+    public static final ImageIcon DOWN_ARROW_ICON;
+    public static final ImageIcon DOWN_ARROW_ICON_HOVER;
+    public static final ImageIcon UP_ARROW_ICON;
+    public static final ImageIcon UP_ARROW_ICON_HOVER;
+
 
     static
     {
@@ -33,5 +42,23 @@ public class Icons {
         final BufferedImage exportIconImage = ImageUtil.loadImageResource(BossHealthIndicatorPlugin.class, "/export_icon.png");
         EXPORT_ICON = new ImageIcon(exportIconImage);
         EXPORT_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(exportIconImage, 0.53f));
+
+        final BufferedImage rightArrowIconImage = ImageUtil.loadImageResource(BossHealthIndicatorPlugin.class, "/arrow_right.png");
+        RIGHT_ARROW_ICON = new ImageIcon(rightArrowIconImage);
+        RIGHT_ARROW_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(rightArrowIconImage, 0.53f));
+
+        final BufferedImage leftArrowIconImage = ImageUtil.flipImage(rightArrowIconImage, true, true);
+        LEFT_ARROW_ICON = new ImageIcon(leftArrowIconImage);
+        LEFT_ARROW_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(leftArrowIconImage, 0.53f));
+
+        final BufferedImage downArrowIconImage = ImageUtil.loadImageResource(BossHealthIndicatorPlugin.class, "/arrow_down.png");
+        DOWN_ARROW_ICON = new ImageIcon(downArrowIconImage);
+        DOWN_ARROW_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(downArrowIconImage, 0.53f));
+
+        final BufferedImage upArrowIconImage = ImageUtil.flipImage(downArrowIconImage, true, true);
+        UP_ARROW_ICON = new ImageIcon(upArrowIconImage);
+        UP_ARROW_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(upArrowIconImage, 0.53f));
+
+
     }
 }

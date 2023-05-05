@@ -4,6 +4,7 @@ import javax.inject.Inject;
 
 import com.boss.health.indicator.model.BossIndicators;
 import com.boss.health.indicator.model.Indicator;
+import com.boss.health.indicator.ui.BossIndicatorCreator;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
@@ -313,5 +314,9 @@ public class BossHealthIndicatorPlugin extends Plugin
 		} else {
 			return "";
 		}
+	}
+
+	public void moveCreator(BossIndicatorCreator creator, int amount) {
+		panel.moveCreator(creator, amount);
 	}
 }

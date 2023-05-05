@@ -1,5 +1,6 @@
 package com.boss.health.indicator.ui;
 
+import com.boss.health.indicator.BossHealthIndicatorPanel;
 import com.boss.health.indicator.BossHealthIndicatorPlugin;
 import com.boss.health.indicator.SelfRunnable;
 import com.boss.health.indicator.model.BossIndicators;
@@ -19,6 +20,10 @@ public class BossIndicatorCreator {
     private BossHealthIndicatorPlugin plugin;
     private SelfRunnable<BossIndicatorCreator> onDelete;
     private JPanel panel;
+
+    private boolean collapsed = false;
+    private IconButton collapseButton;
+    private IconButton expandButton;
 
     public BossIndicatorCreator(BossIndicators bossIndicators, Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<BossIndicatorCreator> onDelete) {
         this.onChanged = onChanged;
@@ -55,14 +60,22 @@ public class BossIndicatorCreator {
     private void createPanel() {
         this.panel = new JPanel(new BorderLayout());
         panel.removeAll();
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 2));
 
         JPanel topPanel = new JPanel();
         topPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 10));
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.X_AXIS));
+        expandButton = new IconButton(Icons.RIGHT_ARROW_ICON, Icons.RIGHT_ARROW_ICON_HOVER, "Expand", () -> { setCollapsed(false); });
+        collapseButton = new IconButton(Icons.DOWN_ARROW_ICON, Icons.DOWN_ARROW_ICON_HOVER, "Collapse", () -> { setCollapsed(true); });
+        expandButton.setVisible(collapsed);
+        collapseButton.setVisible(!collapsed);
+        topPanel.add(expandButton);
+        topPanel.add(collapseButton);
+        topPanel.add(Box.createHorizontalStrut(5));
         topPanel.add(bossNamePicker.getComponent());
-        topPanel.add(Box.createHorizontalStrut(10));
+        topPanel.add(Box.createHorizontalStrut(5));
         topPanel.add(new IconButton(Icons.ADD_ICON, Icons.ADD_ICON_HOVER, "Add a new marker", () -> {
+            setCollapsed(false);
             IndicatorPicker newIndicatorPicker = new IndicatorPicker(
                 onChanged,
                 plugin,
@@ -80,9 +93,16 @@ public class BossIndicatorCreator {
             indicatorsPanel.revalidate();
             onChanged.run();
         }));
-
-        topPanel.add(Box.createHorizontalStrut(10));
+        topPanel.add(Box.createHorizontalStrut(5));
         topPanel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove boss", () -> { onDelete.run(this); }));
+        topPanel.add(Box.createHorizontalStrut(5));
+        topPanel.add(new IconButton(Icons.UP_ARROW_ICON, Icons.UP_ARROW_ICON_HOVER, "Move up", () -> {
+            plugin.moveCreator(this, -1);
+        }));
+        topPanel.add(Box.createHorizontalStrut(5));
+        topPanel.add(new IconButton(Icons.DOWN_ARROW_ICON, Icons.DOWN_ARROW_ICON_HOVER, "Move down", () -> {
+            plugin.moveCreator(this, 1);
+        }));
         panel.add(topPanel, BorderLayout.NORTH);
 
         indicatorsPanel.setLayout(new BoxLayout(indicatorsPanel, BoxLayout.Y_AXIS));
@@ -105,5 +125,18 @@ public class BossIndicatorCreator {
             indicators.add(indicator);
         }
         return new BossIndicators(bossNamePicker.getText(), indicators);
+    }
+
+    public boolean isCollapsed() {
+        return collapsed;
+    }
+
+    public void setCollapsed(boolean isCollapsed) {
+        collapsed = isCollapsed;
+        expandButton.setVisible(isCollapsed);
+        collapseButton.setVisible(!isCollapsed);
+        indicatorsPanel.setVisible(!isCollapsed);
+        panel.revalidate();
+        onChanged.run();
     }
 }
