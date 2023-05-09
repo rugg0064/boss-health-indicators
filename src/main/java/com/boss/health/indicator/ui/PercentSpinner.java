@@ -11,7 +11,6 @@ public class PercentSpinner extends JSpinner {
     public PercentSpinner(double initialValue, double minValue, double maxValue, double stepSize) {
         super(new SpinnerNumberModel(initialValue, minValue, maxValue, stepSize));
 
-        // Create a formatter that appends a "%" symbol to the formatted text
         DecimalFormat percentFormat = new DecimalFormat("0.##%");
         NumberFormatter formatter = new NumberFormatter(percentFormat);
         formatter.setValueClass(Double.class);
@@ -19,9 +18,29 @@ public class PercentSpinner extends JSpinner {
         formatter.setMaximum(maxValue);
         formatter.setAllowsInvalid(true);
 
-        // Set the formatter on the editor of the JFormattedTextField
         JFormattedTextField textField = ((JSpinner.DefaultEditor) this.getEditor()).getTextField();
-        textField.setFormatterFactory(new DefaultFormatterFactory(formatter));
 
+        JFormattedTextField.AbstractFormatter f = new JFormattedTextField.AbstractFormatter() {
+            public String valueToString(Object value) throws ParseException {
+                if (value == null) {
+                    return "";
+                }
+                double percentValue = ((Number) value).doubleValue();
+                return percentFormat.format(percentValue);
+            }
+
+            public Object stringToValue(String text) throws ParseException {
+                if (!text.endsWith("%")) {
+                    text += "%";
+                }
+                if (text == null || text.isEmpty()) {
+                    return null;
+                }
+                double percentValue = percentFormat.parse(text).doubleValue();
+                return percentValue;
+            }
+        };
+
+        textField.setFormatterFactory(new DefaultFormatterFactory(f));
     }
 }
