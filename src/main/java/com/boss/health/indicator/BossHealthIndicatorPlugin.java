@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.*;
+import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -30,6 +31,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
 
@@ -49,6 +52,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Inject private Gson gson;
 	@Inject private ColorPickerManager colorPickerManager;
 	@Inject private BossHealthIndicatorConfig config;
+	@Inject private Notifier notifier;
 
 	private static final String CONFIG_GROUP = "bosshealthindicators";
 	private static final String CONFIG_KEY = "indicators";
@@ -62,6 +66,9 @@ public class BossHealthIndicatorPlugin extends Plugin
 
 	private List<BossIndicators> bossDatabase;
 	Map<String, BossIndicators> mapping;
+
+	// The health of the boss on the last tick of execution
+	private Double lastBossHealthPercentage;
 
 	List<Widget> activeBars;
 	BossIndicators activeBoss;
@@ -90,6 +97,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 
 		activeBars = new ArrayList<Widget>();
 		activeBoss = null;
+		lastBossHealthPercentage = null;
 
 		// Set up side panel
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/bosshealthindicator_icon.png");
@@ -105,44 +113,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 		}
 	}
 
-	void createDummyData() {
-		bossDatabase = new ArrayList<BossIndicators>();
-		bossDatabase.add(
-			new BossIndicators(
-		"Galvek",
-				Arrays.asList(
-				new Indicator[] {
-					new Indicator(0.25, Color.BLUE),
-					new Indicator(0.50, Color.GREEN),
-					new Indicator(0.75, Color.RED)
-				})));
-		bossDatabase.add(
-			new BossIndicators(
-	"Vorkath",
-			Arrays.asList(
-			new Indicator[] {
-				new Indicator(0.33, Color.WHITE),
-			})));
-		bossDatabase.add(
-				new BossIndicators(
-						"Ba-Ba",
-						Arrays.asList(
-								new Indicator[] {
-										new Indicator(0.33, Color.WHITE),
-										new Indicator(0.66, Color.WHITE),
-								})));
-		bossDatabase.add(
-				new BossIndicators(
-						"Akkha",
-						Arrays.asList(
-								new Indicator[] {
-										new Indicator(0.8, Color.BLUE),
-										new Indicator(0.6, Color.BLUE),
-										new Indicator(0.4, Color.BLUE),
-										new Indicator(0.2, Color.BLUE),
-								})));
-	}
-
 	@Override
 	protected void shutDown() throws Exception
 	{
@@ -151,24 +121,62 @@ public class BossHealthIndicatorPlugin extends Plugin
 		clientThread.invoke(() -> clearBars());
 	}
 
+	private void handleHealthNotification() {
+		if(activeBoss == null) {
+			return;
+		}
+		Widget healthBarHealthTextWidget = client.getWidget(303, 20);
+		if(healthBarHealthTextWidget == null ) { return; }
+		if(!healthBarHealthTextWidget.isHidden()) {
+			String bossHealthText = healthBarHealthTextWidget.getText();
+			String[] numbers = bossHealthText.split(" / ");
+			try {
+				int numerator = Integer.parseInt(numbers[0]);
+				int denominator = Integer.parseInt(numbers[1]);
+				double percentHealth = ((double)numerator) / denominator;
+				final boolean forceCheck = lastBossHealthPercentage == null || percentHealth > lastBossHealthPercentage;
+				if (forceCheck) {
+					lastBossHealthPercentage = percentHealth;
+				}
+
+				activeBoss.getEntries().forEach(indicator -> {
+					if(!indicator.getNotify()) {
+						return;
+					}
+					if(
+						((forceCheck) && percentHealth == indicator.getPercentage()) ||
+						(percentHealth <= indicator.getPercentage() && indicator.getPercentage() < lastBossHealthPercentage))
+					{
+						notifier.notify(String.format("%s's health has reached %s%%!", activeBoss.getBossName(), new BigDecimal(indicator.getPercentage() * 100).stripTrailingZeros().toPlainString()));
+					}
+				});
+
+				lastBossHealthPercentage = percentHealth;
+			} catch (NumberFormatException e) {
+				// Couldn't get health numbers
+			}
+		}
+	}
+
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
-		Widget healthBarTextWidget = client.getWidget(303, 9);
+		Widget healthBarNameTextWidget = client.getWidget(303, 9);
 		// TODO: this might not be necessary
-		if(healthBarTextWidget != null) {
-			String text = healthBarTextWidget.getText();
+		if(healthBarNameTextWidget != null) {
+			String bossName = healthBarNameTextWidget.getText();
 			// TODO: this will loop on null over and over again
-			if((activeBoss == null || !activeBoss.getBossName().equals(text))) {
+			if((activeBoss == null || !activeBoss.getBossName().equals(bossName))) {
 				clearBars();
-				if(mapping.containsKey(text)) {
-					BossIndicators data = mapping.get(text);
+				if(mapping.containsKey(bossName)) {
+					BossIndicators data = mapping.get(bossName);
 					activeBoss = data;
 					createBars();
 				} else {
 					activeBoss = null;
 				}
 			}
+			handleHealthNotification();
 		}
 	}
 

@@ -23,6 +23,10 @@ public class Icons {
     public static final ImageIcon DOWN_ARROW_ICON_HOVER;
     public static final ImageIcon UP_ARROW_ICON;
     public static final ImageIcon UP_ARROW_ICON_HOVER;
+    public static final ImageIcon BELL_ENABLED;
+    public static final ImageIcon BELL_ENABLED_HOVER;
+    public static final ImageIcon BELL_DISABLED;
+    public static final ImageIcon BELL_DISABLED_HOVER;
 
 
     static
@@ -59,6 +63,13 @@ public class Icons {
         UP_ARROW_ICON = new ImageIcon(upArrowIconImage);
         UP_ARROW_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(upArrowIconImage, 0.53f));
 
+        final BufferedImage bellEnabledIconImage = ImageUtil.loadImageResource(BossHealthIndicatorPlugin.class, "/bell_icon_enabled.png");
+        BELL_ENABLED = new ImageIcon(bellEnabledIconImage);
+        BELL_ENABLED_HOVER = new ImageIcon(ImageUtil.alphaOffset(bellEnabledIconImage, 0.53f));
+
+        final BufferedImage bellDisabledIconImage = ImageUtil.loadImageResource(BossHealthIndicatorPlugin.class, "/bell_icon_disabled.png");
+        BELL_DISABLED = new ImageIcon(bellDisabledIconImage);
+        BELL_DISABLED_HOVER = new ImageIcon(ImageUtil.alphaOffset(bellDisabledIconImage, 0.53f));
 
     }
 }

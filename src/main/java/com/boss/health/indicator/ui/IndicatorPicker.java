@@ -13,6 +13,7 @@ public class IndicatorPicker {
 
     private PercentagePicker percentagePicker;
     private ColorPicker colorPicker;
+    private BooleanPicker notificationPicker;
 
     public IndicatorPicker(Indicator indicator, Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<IndicatorPicker> onDelete) {
         this.onChanged = onChanged;
@@ -20,6 +21,7 @@ public class IndicatorPicker {
         panel = new JPanel();
         percentagePicker = new PercentagePicker(indicator.getPercentage(), onChanged);
         colorPicker = new ColorPicker(indicator.getColor(), plugin, onChanged);
+        notificationPicker = new BooleanPicker(Icons.BELL_ENABLED, Icons.BELL_ENABLED_HOVER, Icons.BELL_DISABLED, Icons.BELL_DISABLED_HOVER, indicator.getNotify(), "Display notification when threshold reached", onChanged);
 
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(colorPicker.getComponent());
@@ -27,10 +29,11 @@ public class IndicatorPicker {
         panel.add(percentagePicker.getComponent());
         panel.add(Box.createHorizontalStrut(10));
         panel.add(new IconButton(Icons.REMOVE_ICON, Icons.REMOVE_ICON_HOVER, "Remove Indicator", () -> { onDelete.run(this); }));
+        panel.add(notificationPicker);
     }
 
     public IndicatorPicker(Runnable onChanged, BossHealthIndicatorPlugin plugin, SelfRunnable<IndicatorPicker> onDelete) {
-        this(new Indicator(0, Color.WHITE), onChanged, plugin, onDelete);
+        this(new Indicator(0, Color.WHITE, false), onChanged, plugin, onDelete);
     }
 
     public JComponent getComponent() {
@@ -38,6 +41,6 @@ public class IndicatorPicker {
     }
 
     public Indicator getIndicator() {
-        return new Indicator(percentagePicker.getPercent(), colorPicker.getColor());
+        return new Indicator(percentagePicker.getPercent(), colorPicker.getColor(), notificationPicker.getValue());
     }
 }

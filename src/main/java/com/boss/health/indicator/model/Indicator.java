@@ -5,10 +5,12 @@ import java.awt.*;
 public class Indicator {
     private double percentage;
     private Color color;
+    boolean notify;
 
-    public Indicator(double percentage, Color color) {
+    public Indicator(double percentage, Color color, boolean notify) {
         this.percentage = percentage;
         this.color = color;
+        this.notify = notify;
     }
 
     public double getPercentage() {
@@ -17,6 +19,10 @@ public class Indicator {
 
     public Color getColor() {
         return color;
+    }
+
+    public boolean getNotify() {
+        return notify;
     }
 
     public boolean hasAnyNull() {
