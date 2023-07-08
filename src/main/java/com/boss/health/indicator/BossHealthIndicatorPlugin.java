@@ -7,6 +7,7 @@ import com.boss.health.indicator.model.Indicator;
 import com.boss.health.indicator.ui.BossIndicatorCreator;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
@@ -14,6 +15,7 @@ import net.runelite.api.widgets.*;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.WorldService;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -46,6 +48,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Inject private ConfigManager configManager;
 	@Inject private Gson gson;
 	@Inject private ColorPickerManager colorPickerManager;
+	@Inject private BossHealthIndicatorConfig config;
 
 	private static final String CONFIG_GROUP = "bosshealthindicators";
 	private static final String CONFIG_KEY = "indicators";
@@ -62,6 +65,22 @@ public class BossHealthIndicatorPlugin extends Plugin
 
 	List<Widget> activeBars;
 	BossIndicators activeBoss;
+
+	@Provides
+	BossHealthIndicatorConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(BossHealthIndicatorConfig.class);
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if(config.showPanel()) {
+			clientToolbar.addNavigation(navButton);
+		} else {
+			clientToolbar.removeNavigation(navButton);
+		}
+	}
 
 	@Override
 	protected void startUp() throws Exception
@@ -81,7 +100,9 @@ public class BossHealthIndicatorPlugin extends Plugin
 			.priority(6)
 			.panel(panel)
 			.build();
-		clientToolbar.addNavigation(navButton);
+		if(config.showPanel()) {
+			clientToolbar.addNavigation(navButton);
+		}
 	}
 
 	void createDummyData() {
