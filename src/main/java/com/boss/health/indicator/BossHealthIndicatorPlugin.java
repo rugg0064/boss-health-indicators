@@ -132,7 +132,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 			String[] numbers = bossHealthText.split(" / ");
 			try {
 				int numerator = Integer.parseInt(numbers[0]);
-				int denominator = Integer.parseInt(numbers[1]);
+				int denominator = Integer.parseInt(numbers[1].contains("%") ? (numbers[1].split(" "))[0] : numbers[1]);
 				double percentHealth = ((double)numerator) / denominator;
 				final boolean forceCheck = lastBossHealthPercentage == null || percentHealth > lastBossHealthPercentage;
 				if (forceCheck) {
