@@ -1,5 +1,8 @@
 package com.boss.health.indicator;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.inject.Inject;
 
 import com.boss.health.indicator.model.BossIndicators;
@@ -71,7 +74,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	private Double lastBossHealthPercentage;
 
 	List<Widget> activeBars;
-	BossIndicators activeBoss;
+	List<BossIndicators> activeBoss;
 
 	@Provides
 	BossHealthIndicatorConfig provideConfig(ConfigManager configManager)
@@ -139,17 +142,20 @@ public class BossHealthIndicatorPlugin extends Plugin
 					lastBossHealthPercentage = percentHealth;
 				}
 
-				activeBoss.getEntries().forEach(indicator -> {
-					if(!indicator.getNotify()) {
-						return;
-					}
-					if(
-						((forceCheck) && percentHealth == indicator.getPercentage()) ||
-						(percentHealth <= indicator.getPercentage() && indicator.getPercentage() < lastBossHealthPercentage))
-					{
-						notifier.notify(String.format("%s's health has reached %s%%!", activeBoss.getBossName(), new BigDecimal(indicator.getPercentage() * 100).stripTrailingZeros().toPlainString()));
-					}
-				});
+				activeBoss.forEach((indicatorSet -> {
+					indicatorSet.getEntries().forEach(indicator -> {
+						if(!indicator.getNotify()) {
+							return;
+						}
+						if(
+							((forceCheck) && percentHealth == indicator.getPercentage()) ||
+								(percentHealth <= indicator.getPercentage() && indicator.getPercentage() < lastBossHealthPercentage))
+						{
+							notifier.notify(String.format("%s's health has reached %s%%!", indicatorSet.getBossName(), new BigDecimal(indicator.getPercentage() * 100).stripTrailingZeros().toPlainString()));
+						}
+					});
+				}));
+
 
 				lastBossHealthPercentage = percentHealth;
 			} catch (NumberFormatException e) {
@@ -158,19 +164,54 @@ public class BossHealthIndicatorPlugin extends Plugin
 		}
 	}
 
+	private List<BossIndicators> getMatchingIndicators(String bossName) {
+		ArrayList<BossIndicators> returnList = new ArrayList<>();
+		mapping.forEach((name, indicator) -> {
+			try {
+				// Turn the database boss name into a regular expression to compare against provided boss name
+				Pattern pattern = Pattern.compile(name);
+				Matcher matcher = pattern.matcher(bossName);
+				if (matcher.matches()) {
+					returnList.add(indicator);
+				} else {
+					// Nothing
+				}
+			} catch(PatternSyntaxException e) {
+				// Pattern was invalid, do nothing.
+			}
+		});
+		return returnList;
+	}
+
+	private boolean areBossListsIdentical(List<BossIndicators> a, List<BossIndicators> b) {
+		if(a.size() != b.size()) {
+			return false;
+		}
+		for(int i = 0; i < a.size(); i++) {
+			BossIndicators elementA = a.get(i);
+			BossIndicators elementB = b.get(i);
+			if(!a.equals(b)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
 		Widget healthBarNameTextWidget = client.getWidget(303, 9);
 		// TODO: this might not be necessary
 		if(healthBarNameTextWidget != null) {
-			String bossName = healthBarNameTextWidget.getText();
 			// TODO: this will loop on null over and over again
-			if((activeBoss == null || !activeBoss.getBossName().equals(bossName))) {
+			// Get current boss, if there is any
+			String bossName = healthBarNameTextWidget.getText();
+			List<BossIndicators> newIndicators = getMatchingIndicators(bossName);
+			if(activeBoss == null || !areBossListsIdentical(activeBoss, newIndicators)) {
 				clearBars();
 				if(mapping.containsKey(bossName)) {
 					BossIndicators data = mapping.get(bossName);
-					activeBoss = data;
+					activeBoss = newIndicators;
 					createBars();
 				} else {
 					activeBoss = null;
@@ -196,9 +237,11 @@ public class BossHealthIndicatorPlugin extends Plugin
 		Widget parent = client.getWidget(303, 12);
 		int height = client.getWidget(303, 10).getOriginalHeight();
 
-		for(Indicator indicator : activeBoss.getEntries()) {
-			Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage(), height);
-			activeBars.add(bar);
+		for(BossIndicators bossIndicators : activeBoss) {
+			for(Indicator indicator : bossIndicators.getEntries()) {
+				Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage(), height);
+				activeBars.add(bar);
+			}
 		}
 	}
 

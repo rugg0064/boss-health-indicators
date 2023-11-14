@@ -12,6 +12,11 @@ You can use the panel to add your own boss indicators. For an example, you can c
 
 ![ingGame](img/ingame.png)
 
+# Regular Expressions
+With the advent of Trailblazer League: Reloaded, you can now use regular expressions to match many bosses at once.
+
+Notably, if you are taking the "Executioner" relic, add a boss with the name ".*" and add an indicator for 20%. Every boss will now have a marker for when to execute!
+
 # Panel
 
 ![panel](img/panel.png)
