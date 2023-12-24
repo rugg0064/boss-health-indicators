@@ -211,7 +211,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 			List<BossIndicators> newIndicators = getMatchingIndicators(bossName);
 			if(activeBoss == null || !areBossListsIdentical(activeBoss, newIndicators)) {
 				clearBars();
-				if(mapping.containsKey(bossName)) {
+				if(newIndicators.size() > 0) {
 					BossIndicators data = mapping.get(bossName);
 					activeBoss = newIndicators;
 					createBars();
