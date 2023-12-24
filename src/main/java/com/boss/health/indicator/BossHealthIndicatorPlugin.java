@@ -1,5 +1,6 @@
 package com.boss.health.indicator;
 
+import java.text.DecimalFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -57,6 +58,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Inject private BossHealthIndicatorConfig config;
 	@Inject private Notifier notifier;
 
+	private static final DecimalFormat percentageFormat = new DecimalFormat("##.##%");
 	private static final String CONFIG_GROUP = "bosshealthindicators";
 	private static final String CONFIG_KEY = "indicators";
 
@@ -151,7 +153,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 							((forceCheck) && percentHealth == indicator.getPercentage()) ||
 								(percentHealth <= indicator.getPercentage() && indicator.getPercentage() < lastBossHealthPercentage))
 						{
-							notifier.notify(String.format("%s's health has reached %s%%!", indicatorSet.getBossName(), new BigDecimal(indicator.getPercentage() * 100).stripTrailingZeros().toPlainString()));
+							notifier.notify(String.format("%s's health has reached %s!", indicatorSet.getBossName(), percentageFormat.format(indicator.getPercentage())));
 						}
 					});
 				}));
