@@ -22,9 +22,10 @@ You can use regular expressions to match manyh bosses at once. For instance, if 
 
 # Common Problems
 
-- Ensure this setting is enabled, otherwise the plugin cannot locate which boss you are fighting.
+- Ensure these settings are enabled, otherwise the plugin cannot locate which boss you are fighting.
 
-![ingGame](img/bossNameSetting.png)
+![ingGame](img/bossNameSetting1.png)
+![ingGame](img/bossNameSetting2.png)
 
 # Image Source
 
