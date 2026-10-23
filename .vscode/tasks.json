@@ -1,0 +1,26 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run RuneLite",
+			"type": "shell",
+			"command": "${workspaceFolder}/gradlew runClient",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Start RuneLite (debug)",
+			"type": "shell",
+			"command": "${workspaceFolder}/gradlew runClient -PdebugPort=5005",
+			"isBackground": true,
+			"problemMatcher": {
+				"pattern": { "regexp": "^__never__$" },
+				"background": {
+					"activeBegins": true,
+					"beginsPattern": "runClient",
+					"endsPattern": "Listening for transport dt_socket"
+				}
+			}
+		}
+	]
+}
