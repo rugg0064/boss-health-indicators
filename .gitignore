@@ -8,3 +8,5 @@ nbactions.xml
 nb-configuration.xml
 nbproject/gradle.properties
 bin
+.bin
+.build
