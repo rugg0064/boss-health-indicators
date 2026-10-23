@@ -7,7 +7,8 @@
 			"request": "attach",
 			"hostName": "localhost",
 			"port": 5005,
-			"preLaunchTask": "Start RuneLite (debug)"
+			"preLaunchTask": "Start RuneLite (debug)",
+			"postDebugTask": "Stop RuneLite"
 		}
 	]
 }
