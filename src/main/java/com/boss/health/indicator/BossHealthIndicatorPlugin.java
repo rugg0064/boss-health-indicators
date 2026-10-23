@@ -15,6 +15,7 @@ import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.*;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
@@ -130,7 +131,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 		if(activeBoss == null) {
 			return;
 		}
-		Widget healthBarHealthTextWidget = client.getWidget(303, 20);
+		Widget healthBarHealthTextWidget = client.getWidget(InterfaceID.HpbarHud.HP_BAR_TEXT);
 		if(healthBarHealthTextWidget == null ) { return; }
 		if(!healthBarHealthTextWidget.isHidden()) {
 			String bossHealthText = healthBarHealthTextWidget.getText();
@@ -202,7 +203,7 @@ public class BossHealthIndicatorPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
-		Widget healthBarNameTextWidget = client.getWidget(303, 9);
+		Widget healthBarNameTextWidget = client.getWidget(InterfaceID.HpbarHud.CREATURE_NAME);
 		// TODO: this might not be necessary
 		if(healthBarNameTextWidget != null) {
 			// TODO: this will loop on null over and over again
@@ -235,29 +236,33 @@ public class BossHealthIndicatorPlugin extends Plugin
 	// Creates the appropriate indicator bars as children of the healthbar widget
 	// Assumes activeBoss is set and not null
 	void createBars() {
-		//Widget parent = client.getWidget(303, 10);
-		Widget parent = client.getWidget(303, 12);
-		int height = client.getWidget(303, 10).getOriginalHeight();
+		// The layer holding the coloured health fill
+		Widget parent = client.getWidget(InterfaceID.HpbarHud.INNER);
+		if(parent == null) {
+			return;
+		}
 
 		for(BossIndicators bossIndicators : activeBoss) {
 			for(Indicator indicator : bossIndicators.getEntries()) {
-				Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage(), height);
+				Widget bar = createBarWidget(parent, indicator.getColor(), indicator.getPercentage());
 				activeBars.add(bar);
 			}
 		}
 	}
 
 	// Creates a bar widget, does not add to parent
-	private Widget createBarWidget(Widget parent, Color color, double percent, int height) {
+	private Widget createBarWidget(Widget parent, Color color, double percent) {
 		Widget bar = parent.createChild(WidgetType.RECTANGLE);
 		bar.setOriginalWidth(2);
 		bar.setWidthMode(WidgetSizeMode.ABSOLUTE);
 
-		bar.setOriginalHeight(height);
-		bar.setHeightMode(WidgetSizeMode.ABSOLUTE);
+		// Fill the parent's height
+		bar.setOriginalHeight(0);
+		bar.setHeightMode(WidgetSizeMode.MINUS);
 
-		bar.setOriginalX((int) (parent.getWidth() * percent));
-		bar.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
+		// Position in 16384ths of the parent's width so the bar stays in place if the health bar is resized
+		bar.setOriginalX((int) (16384 * percent));
+		bar.setXPositionMode(WidgetPositionMode.LEFT_16384THS);
 
 		bar.setTextColor(color.getRGB());
 		bar.setOpacity(color.getTransparency());
