@@ -17,6 +17,8 @@ import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.*;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
@@ -65,23 +67,8 @@ public class BossHealthIndicatorPlugin extends Plugin
 	private static final String CONFIG_GROUP = "bosshealthindicators";
 	private static final String CONFIG_KEY = "indicators";
 
-	// Standard boss HP HUD (interface 303). Used outside Theatre of Blood.
-	private static final int STANDARD_HP_GROUP = 303;
-	private static final int STANDARD_HP_LAYER = 5;
-	private static final int STANDARD_HP_NAME = 9;
-	private static final int STANDARD_HP_BAR = 10;
-	private static final int STANDARD_HP_INNER = 12;
-	private static final int STANDARD_HP_TEXT = 20;
-
-	// Theatre of Blood raid HUD (interface 28). This bar shows a percentage only,
+	// The Theatre of Blood raid HUD (InterfaceID.TobHud) shows a percentage only,
 	// so the boss is identified from the NPC in the room.
-	private static final int TOB_HUD_GROUP = 28;
-	private static final int TOB_PROGRESS_CONTAINER = 9;
-	private static final int TOB_PROGRESS_BAR = 36;
-	private static final int TOB_WAVE_TYPE_VARBIT = 6447;
-	private static final int TOB_HP_VARBIT = 6448;
-	private static final int TOB_HP_MAX_VARBIT = 6449;
-
 	private static final Set<String> TOB_BOSS_NAMES = new HashSet<String>(Arrays.asList(
 		"The Maiden of Sugadinti",
 		"Pestilent Bloat",
@@ -107,7 +94,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 	List<Widget> activeBars;
 	List<BossIndicators> activeBoss;
 	private Widget activeBarWidget;
-	private int activeBarWidth;
 
 	@Provides
 	BossHealthIndicatorConfig provideConfig(ConfigManager configManager)
@@ -134,7 +120,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 		activeBars = new ArrayList<Widget>();
 		activeBoss = null;
 		activeBarWidget = null;
-		activeBarWidth = 0;
 		lastBossHealthPercentage = null;
 
 		// Set up side panel
@@ -157,7 +142,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 		clientToolbar.removeNavigation(navButton);
 		activeBoss = null;
 		activeBarWidget = null;
-		activeBarWidth = 0;
 		clientThread.invoke(() -> clearBars());
 	}
 
@@ -194,14 +178,14 @@ public class BossHealthIndicatorPlugin extends Plugin
 
 	private Double readHealthFraction(HealthBarTarget target) {
 		if(target.theatreOfBlood) {
-			int max = client.getVarbitValue(TOB_HP_MAX_VARBIT);
+			int max = client.getVarbitValue(VarbitID.TOB_CLIENT_WAVEPROGRESS_MAX);
 			if(max <= 0) {
 				return null;
 			}
-			return client.getVarbitValue(TOB_HP_VARBIT) / (double) max;
+			return client.getVarbitValue(VarbitID.TOB_CLIENT_WAVEPROGRESS_VAL) / (double) max;
 		}
 
-		Widget healthBarHealthTextWidget = client.getWidget(STANDARD_HP_GROUP, STANDARD_HP_TEXT);
+		Widget healthBarHealthTextWidget = client.getWidget(InterfaceID.HpbarHud.HP_BAR_TEXT);
 		if(healthBarHealthTextWidget == null || healthBarHealthTextWidget.isHidden()) {
 			return null;
 		}
@@ -288,18 +272,15 @@ public class BossHealthIndicatorPlugin extends Plugin
 		}
 
 		List<BossIndicators> newIndicators = getMatchingIndicators(target.bossName);
-		int barWidth = target.barWidget.getWidth();
 		boolean targetChanged = activeBoss == null
 			|| activeBarWidget != target.barWidget
-			|| activeBarWidth != barWidth
 			|| !areBossListsIdentical(activeBoss, newIndicators);
 		if(targetChanged) {
 			clearBars();
 			lastBossHealthPercentage = null;
-			if(newIndicators.size() > 0 && barWidth > 0) {
+			if(newIndicators.size() > 0) {
 				activeBoss = newIndicators;
 				activeBarWidget = target.barWidget;
-				activeBarWidth = barWidth;
 				createBars(target);
 			} else {
 				clearActiveTarget();
@@ -323,39 +304,31 @@ public class BossHealthIndicatorPlugin extends Plugin
 	}
 
 	private HealthBarTarget standardHealthBar() {
-		Widget hp = client.getWidget(STANDARD_HP_GROUP, STANDARD_HP_LAYER);
-		Widget nameWidget = client.getWidget(STANDARD_HP_GROUP, STANDARD_HP_NAME);
-		Widget inner = client.getWidget(STANDARD_HP_GROUP, STANDARD_HP_INNER);
-		Widget bar = client.getWidget(STANDARD_HP_GROUP, STANDARD_HP_BAR);
-		if(hp == null || hp.isHidden() || nameWidget == null || inner == null || bar == null) {
+		Widget hp = client.getWidget(InterfaceID.HpbarHud.HP);
+		Widget nameWidget = client.getWidget(InterfaceID.HpbarHud.CREATURE_NAME);
+		// The layer holding the coloured health fill
+		Widget inner = client.getWidget(InterfaceID.HpbarHud.INNER);
+		if(hp == null || hp.isHidden() || nameWidget == null || inner == null) {
 			return null;
 		}
 		String bossName = normalizeName(nameWidget.getText());
 		if(bossName.isEmpty() || "-".equals(bossName)) {
 			return null;
 		}
-		int height = bar.getOriginalHeight();
-		if(height <= 0) {
-			height = bar.getHeight();
-		}
-		return new HealthBarTarget(bossName, false, inner, height);
+		return new HealthBarTarget(bossName, false, inner);
 	}
 
 	private HealthBarTarget theatreHealthBar() {
-		Widget container = client.getWidget(TOB_HUD_GROUP, TOB_PROGRESS_CONTAINER);
-		Widget bar = client.getWidget(TOB_HUD_GROUP, TOB_PROGRESS_BAR);
-		if(container == null || container.isHidden() || bar == null || client.getVarbitValue(TOB_WAVE_TYPE_VARBIT) == 0) {
+		Widget container = client.getWidget(InterfaceID.TobHud.PROGRESS_CONTAINER);
+		Widget bar = client.getWidget(InterfaceID.TobHud.PROGRESS_BAR);
+		if(container == null || container.isHidden() || bar == null || client.getVarbitValue(VarbitID.TOB_CLIENT_WAVEPROGRESS_TYPE) == 0) {
 			return null;
 		}
 		String bossName = selectTobBossName(aliveNpcNames(), interactingNpcName());
 		if(bossName == null) {
 			return null;
 		}
-		int height = bar.getHeight();
-		if(height <= 0) {
-			height = container.getHeight();
-		}
-		return new HealthBarTarget(bossName, true, bar, height);
+		return new HealthBarTarget(bossName, true, bar);
 	}
 
 	private List<String> aliveNpcNames() {
@@ -397,7 +370,6 @@ public class BossHealthIndicatorPlugin extends Plugin
 	private void clearActiveTarget() {
 		activeBoss = null;
 		activeBarWidget = null;
-		activeBarWidth = 0;
 		lastBossHealthPercentage = null;
 	}
 
@@ -415,23 +387,25 @@ public class BossHealthIndicatorPlugin extends Plugin
 	void createBars(HealthBarTarget target) {
 		for(BossIndicators bossIndicators : activeBoss) {
 			for(Indicator indicator : bossIndicators.getEntries()) {
-				Widget bar = createBarWidget(target.barWidget, indicator.getColor(), indicator.getPercentage(), target.markerHeight);
+				Widget bar = createBarWidget(target.barWidget, indicator.getColor(), indicator.getPercentage());
 				activeBars.add(bar);
 			}
 		}
 	}
 
 	// Creates a bar widget, does not add to parent
-	private Widget createBarWidget(Widget parent, Color color, double percent, int height) {
+	private Widget createBarWidget(Widget parent, Color color, double percent) {
 		Widget bar = parent.createChild(WidgetType.RECTANGLE);
 		bar.setOriginalWidth(2);
 		bar.setWidthMode(WidgetSizeMode.ABSOLUTE);
 
-		bar.setOriginalHeight(height);
-		bar.setHeightMode(WidgetSizeMode.ABSOLUTE);
+		// Fill the parent's height
+		bar.setOriginalHeight(0);
+		bar.setHeightMode(WidgetSizeMode.MINUS);
 
-		bar.setOriginalX((int) (parent.getWidth() * percent));
-		bar.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
+		// Position in 16384ths of the parent's width so the bar stays in place if the health bar is resized
+		bar.setOriginalX((int) (16384 * percent));
+		bar.setXPositionMode(WidgetPositionMode.LEFT_16384THS);
 
 		bar.setTextColor(color.getRGB());
 		bar.setOpacity(color.getTransparency());
@@ -572,13 +546,11 @@ public class BossHealthIndicatorPlugin extends Plugin
 		private final String bossName;
 		private final boolean theatreOfBlood;
 		private final Widget barWidget;
-		private final int markerHeight;
 
-		private HealthBarTarget(String bossName, boolean theatreOfBlood, Widget barWidget, int markerHeight) {
+		private HealthBarTarget(String bossName, boolean theatreOfBlood, Widget barWidget) {
 			this.bossName = bossName;
 			this.theatreOfBlood = theatreOfBlood;
 			this.barWidget = barWidget;
-			this.markerHeight = markerHeight;
 		}
 	}
 }

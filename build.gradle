@@ -3,20 +3,20 @@ plugins {
 }
 
 repositories {
-	mavenLocal()
 	maven {
 		url = 'https://repo.runelite.net'
 	}
 	mavenCentral()
+	mavenLocal()
 }
 
-def runeLiteVersion = '1.10.17.2'
+def runeLiteVersion = 'latest.release'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
 
-	compileOnly 'org.projectlombok:lombok:1.18.20'
-	annotationProcessor 'org.projectlombok:lombok:1.18.20'
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -24,9 +24,21 @@ dependencies {
 }
 
 group = 'com.boss.health.indicator'
-version = '1.2'
-sourceCompatibility = '1.8'
+version = '1.3'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
+	options.release.set(11)
+}
+
+tasks.register('runClient', JavaExec) {
+	group = 'application'
+	description = 'Launches RuneLite with this plugin loaded. Pass -PdebugPort=5005 to wait for a debugger.'
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.boss.health.indicator.BossHealthIndicatorTest'
+	args '--developer-mode', '--debug'
+	jvmArgs '-ea'
+	if (project.hasProperty('debugPort')) {
+		jvmArgs "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=${project.debugPort}"
+	}
 }

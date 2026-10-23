@@ -1,0 +1,13 @@
+{
+	"java.configuration.updateBuildConfiguration": "automatic",
+	"java.import.gradle.wrapper.enabled": true,
+	"java.import.gradle.java.home": "/usr/lib/jvm/java-17-openjdk-amd64",
+	"java.configuration.runtimes": [
+		{
+			"name": "JavaSE-17",
+			"path": "/usr/lib/jvm/java-17-openjdk-amd64",
+			"default": true
+		}
+	],
+	"java.jdt.ls.lombokSupport.enabled": true
+}
